@@ -3,13 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using static TCPServerTemplate1.Server;
 
 namespace TCPServerTemplate1
 {
     public class Server
     {
-        private const int PORT = 5000;
+
+
+
+        private const int PORT = 7531;
+
+        //Liste af playgrounds
+
+        public readonly List<Playground> playgrounds = new List<Playground>()
+        {
+            new Playground {Id = 1, Name = "Millpark", MaxChildren = 10, MinAge = 5 },
+            new Playground { Id = 2, Name = "Secret Playground", MaxChildren = 12, MinAge = 4 },
+            new Playground { Id = 3, Name = "Library", MaxChildren = 8, MinAge = 3 },
+            new Playground { Id = 4, Name = "School", MaxChildren = 15, MinAge = 7 }
+        };
+    
+        
+
+
 
         public void start()
         {
@@ -44,7 +63,7 @@ namespace TCPServerTemplate1
 
 
             //Serverfunktionalitet
-            DoServerUdenJson(sr, sw);
+            DoServer(sr, sw);
 
 
             
@@ -57,54 +76,46 @@ namespace TCPServerTemplate1
 
         }
 
-        private void DoServerUdenJson(StreamReader sr, StreamWriter sw)
+        private void DoServer(StreamReader sr, StreamWriter sw)
         {
-            //Step 1: Modtag kommando (Random, Add, Subtract)
-
-            string command = sr.ReadLine();
-            Console.WriteLine($"Revieved command: {command}");
-
-            //Step 2: Sender instruks til klienten
-            sw.WriteLine("Input Numbers");
-
-            //step 2: Modtag tal fra klienten
-            string numbersInput = sr.ReadLine();
-            Console.WriteLine($"Revieved numbers: {numbersInput}");
 
 
 
-            //Modtager input
-            string[] numbers = numbersInput.Split(' ');
-            int num1 = int.Parse(numbers[0]);
-            int num2 = int.Parse(numbers[1]);
 
-            //Behandler input
-            //her returneres et random tal mellem num1 og num2, begge inkluderet
-            string result = string.Empty;
+            //Step 1: Modtag Alder fra klient
 
-            if (command == "Random")
+            string input = sr.ReadLine();
+            Console.WriteLine($"Revieved input: {input}");
+
+            //Forsøger at konvertere til int age 
+            if (!int.TryParse(input, out int age))
             {
-                Random random = new Random();
-                result = random.Next(num1, num2 + 1).ToString();
+                sw.WriteLine("Invalid input.");
+                return;
             }
-            //her lægges num1 og num2 sammen og returneres som et resultat
-            else if (command == "Add")
-            {
-                result = (num1 + num2).ToString();
-            }
-            //Her subtraktion af num1 og num2
-            else if (command == "Subtract")
-            {
-                result = (num1 - num2).ToString();
-            }
-            else
-            {
-                result = "Unknown command";
-            }
-            //Sender resultat retur til klient
+
+
+            // Step 2: Filtrér listen over legepladser baseret på alderen
+            var allowedPlaygrounds = playgrounds.FindAll(p => p.MinAge <= age);
+
+            // Step 4: Konverter listen til JSON-format
+            string result = JsonSerializer.Serialize(allowedPlaygrounds);
+
+            // Step 5: Send resultatet tilbage til klienten
             sw.WriteLine(result);
-            Console.WriteLine($"result: {result}");
+            Console.WriteLine($"Result sent to client: {result}");
 
+        }
+
+
+        public class Playground
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public int MaxChildren { get; set; }
+            public int MinAge { get; set; }
+
+             
         }
     }
 }
